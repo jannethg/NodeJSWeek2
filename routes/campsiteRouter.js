@@ -218,3 +218,7 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
 
 
 module.exports = campsiteRouter;
+
+//DX4tkkeH7Kg36iTu
+
+//mongodb+srv://jgutier1:DX4tkkeH7Kg36iTu@nucampcluster10282023.pdde700.mongodb.net/?retryWrites=true&w=majority
