@@ -41,48 +41,36 @@ app.set("view engine", "jade");
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-//provide cookie secret key with a string
-app.use(cookieParser('12345-67890-09876-54321'));
+app.use(cookieParser());
 
+//Authentication Middleware, users authenticate before they access to the server.
+//must have request and response as parameters (req, res)
+// if !authHeader -means the user did not enter a username and password yet
 function auth(req,res,next) {
-  // Cookie parser: checks if cookie is properly signed
-  if (!req.signedCookies.user) {  
-  
-    const authHeader = req.headers.authorization;
-    if(!authHeader) {
-        const err = new Error('You are not authenticated');
-        res.setHeader('WWW-Authenticate', 'Basic');  
+  console.log(req.headers);
+  const authHeader = req.headers.authorization;
+  if(!authHeader) {
+      const err = new Error('You are not authenticated');
+      res.setHeader('WWW-Authenticate', 'Basic');  // this lets the client know that the server is requesting authentication
+      err.status = 401;
+      return next(err);
+  }
+    //Buffer global class in Node, from is a static method of buffer, the split and to method belong to vanilla javascript, not node
+    //this will take the username /pwd from the header and it will extract the
+    //authentication from it and put them both into the auth array as the first and second items. 
+    const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
+    //this will grab the username and password from auth array
+    const user = auth[0];
+    const pass = auth[1];
+    // simple if check if user= 'admin' and password = password
+    if (user === 'admin' && pass === 'password') {
+        return next(); // authorized or access granted
+    } else {
+        const err = new Error('You are not authenticated!');
+        res.setHeader('WWW-Authenticate', 'Basic');      
         err.status = 401;
         return next(err);
     }
-      const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');    
-      const user = auth[0];
-      const pass = auth[1];    
-      if (user === 'admin' && pass === 'password') {
-          //Express response object API:  
-          //First Argument:  setup a property of user on the sign cookie object
-          //second argument: will be a value to store in the name property with string of "admin"
-          //Third arg:  is optional and an object that contains configuration values, 
-          //  we'll let Express know to use the secret key from cookie parser to create a signed cookie
-          //res.cookie method handles creating the cookie and setting it up in the server's response to the client
-          res.cookie('user', 'admin', {signed: true});
-          return next(); // authorized or access granted
-      } else {
-          const err = new Error('You are not authenticated!');
-          res.setHeader('WWW-Authenticate', 'Basic');      
-          err.status = 401;
-          return next(err);
-      }
-  } else {  //cookie else if there is a signed cookie user value in incoming request
-    //we'll check to see if value ="admin", if so we'll grant access by passing the client on to the next middleware function using next();
-    if (req.signedCookies.user ==='admin') {
-      return next();
-    } else {  //otherwise we'll send an error response of '401'
-      const err = new Error('You are not authenticated!');        
-      err.status = 401;
-      return next(err);
-    }
-  }
 }
 app.use(auth);
 
