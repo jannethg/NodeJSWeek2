@@ -4,11 +4,11 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 
 var logger = require("morgan");
-
+//import the express session module and session-file-store
+// const Filestore calls to function Session-file-store and Session
+// Argument is returning another function as its return value then immediately calling that function with the second parameter list of (Session)
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
-const passport = require('passport');
-const authenticate = require('./authenticate');
 
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
@@ -45,34 +45,42 @@ app.set("view engine", "jade");
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
+//we won't use a cookie parser since the Express session has its own cookies
+//app.use(cookieParser('12345-67890-09876-54321'));
 
 app.use(session({
   name: 'session-id',
-  secret: '12345-67890-09876-54321',  
-  saveUninitialized: false,     
-  resave: false,   
+  secret: '12345-67890-09876-54321',
+  //new session is created but no updates are made to it, 
+  //then at the end of the request it won't get saved because it will just be an empty session.
+  saveUninitialized: false,   
+  // once the session has been create it will keep the session saved even if that session didn't make any updates.
+  //this will keep the session marked as active so it doesn't get deleted by the user still making requests.
+  resave: false, 
+  //this will create a new Filestore as an object that we can use to save our session info to the server's hard disk instead of just in running application memory
   store: new FileStore()
 
 }));
-
-//to check if there's an existing session for that client, then if so the session client is loaded into the request as rec.user
-app.use(passport.initialize());
-app.use(passport.session());
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
 
 function auth(req, res, next) {
-  console.log(req.user);
-  // if there is no req user, then we know there is no session loaded for this client
-  if (!req.user) {
+  console.log(req.session);
+
+  if (!req.session.user) {
       const err = new Error('You are not authenticated!');
       err.status = 401;
       return next(err);
   } else {
-      return next(); //pass to the next middleware    
+      if (req.session.user === 'authenticated') {
+          return next();
+      } else {
+          const err = new Error('You are not authenticated!');
+          err.status = 401;
+          return next(err);
+      }
   }
 }
 app.use(auth);
@@ -89,9 +97,12 @@ app.use(function (req, res, next) {
 });
 
 // error handler
-app.use(function (err, req, res, next) {  
+app.use(function (err, req, res, next) {
+  // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
+
+  // render the error page
   res.status(err.status || 500);
   res.render("error");
 });
