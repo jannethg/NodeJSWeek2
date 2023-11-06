@@ -2,92 +2,84 @@
 const express = require("express");
 const Partner = require("../models/partner");
 const authenticate = require('../authenticate');
+const { verifyUser, verifyAdmin } = require('../authenticate')
+
 
 const partnerRouter = express.Router();
 
 
-partnerRouter
-  .route("/")
-  .get((req, res, next) => {
-    Partner.find()
-      .then((partners) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(partners);
-      })
-      .catch((err) => next(err));
-  })
+partnerRouter.route('/')
+    .get(async (req, res, next) => {
+        try {
+            const partners = await Partner.find()
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(partners);
+        }
+        catch (err) {
+            next(err);
+        }
+    })
 
-  //authenticate except GET
-  .post(authenticate.verifyUser,(req, res, next) => {
-    Partner.create(req.body)
-      .then((createdPartner) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(createdPartner);
-      })
-      .catch((err) => next(err));
-  })
+    //authenticate all except the.get
+    .post(verifyUser, verifyAdmin, async (req, res, next) => {
+        try {
+            const partner = await Partner.create(req.body)
+            console.log('Partner Created ', partner);
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(partner);
+        }
+        catch (err) { next(err); }
+    })
+    .put(verifyUser, (req, res) => {
+        res.statusCode = 403;
+        res.end('PUT operation not supported on /partners');
+    })
+    .delete(verifyUser, verifyAdmin, async (req, res, next) => {
+        try {
+            const response = await Partner.deleteMany()
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(response);
+        }
+        catch (err) { next(err); }
+    })
 
-  //authenticate
-  .put(authenticate.verifyUser,(req, res) => {
-    res.statusCode = 403;
-    res.end("PUT operation not supported on /partners");
-  })
+partnerRouter.route('/:partnerId')
+    .get(async (req, res, next) => {
+        try {
+            const partner = await Partner.findById(req.params.partnerId)
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(partner);
+        }
+        catch (err) { next(err); }
+    })
+    .post(verifyUser, (req, res) => {
+        res.statusCode = 403;
+        res.end(`POST operation not supported on /partners/${req.params.partnerId}`);
+    })
+    .put(verifyUser, verifyAdmin, async (req, res, next) => {
+        try {
+            const partner = await Partner.findByIdAndUpdate(req.params.partnerId, { $set: req.body }, { new: true })
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(partner);
+        }
+        catch (err) { next(err); }
+    })
+    .delete(verifyUser, verifyAdmin, async (req, res, next) => {
+        try {
+            const response = await Partner.findByIdAndDelete(req.params.partnerId)
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(response);
+        }
+        catch (err) {
+            next(err);
+        }
+    })
 
-  //authenticate
-  .delete(authenticate.verifyUser,(req, res, next) => {
-    Partner.deleteMany()
-      .then((response) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(response);
-      })
-      .catch((err) => next(err));
-  });
-
-partnerRouter
-  .route("/:partnerId")
-  .get((req, res, next) => {
-    Partner.findById(req.params.partnerId)
-      .then((partner) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(partner);
-      })
-      .catch((err) => next(err));
-  })
-
-  //authenticate except GET
-  .post(authenticate.verifyUser, (req, res) => {
-    res.statusCode = 403;
-    res.end(
-      `POST operation not supported on /partners/${req.params.partnerId}`
-    );
-  })
-  .put(authenticate.verifyUser, (req, res, next) => {
-    Partner.findByIdAndUpdate(
-      req.params.partnerId,
-      {
-        $set: req.body,
-      },
-      { new: true }
-    )
-      .then((partner) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(partner);
-      })
-      .catch((err) => next(err));
-  })
-  .delete(authenticate.verifyUser,(req, res, next) => {
-    Partner.findByIdAndDelete(req.params.partnerId)
-      .then((deletedPartner) => {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.json(deletedPartner);
-      })
-      .catch((err) => next(err));
-  });
 
 module.exports = partnerRouter;
