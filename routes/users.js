@@ -3,22 +3,23 @@ const User = require("../models/user");
 const passport = require("passport");
 const authenticate = require("../authenticate");
 const { verifyUser, verifyAdmin } = authenticate;
+const cors = require('./cors');
 
 const userRouter = express.Router();
 
 /* GET users listing. */
-userRouter.get("/", verifyUser, verifyAdmin, async (req, res, next) => {
-  try {
-    const users = await User.find({});
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json");
-    res.json(users);
-  } catch (err) {
-    return next(err);
-  }
+userRouter.get("/", cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
+    User.find()
+    .then(users => {
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.json(users);
+    })
+    .catch(err => next(err));
+  
 });
 
-userRouter.post("/signup", (req, res) => {
+userRouter.post("/signup", cors.corsWithOptions, (req, res) => {
   User.register(
     new User({ username: req.body.username }),
     req.body.password,
@@ -60,7 +61,7 @@ const authenticationError = (req, res, next) => {
   return next(err);
 };
 
-userRouter.post("/login", passport.authenticate("local"), (req, res) => {
+userRouter.post("/login", cors.corsWithOptions, passport.authenticate("local"), (req, res) => {
   const token = authenticate.getToken({ _id: req.user._id });
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json");
@@ -71,7 +72,7 @@ userRouter.post("/login", passport.authenticate("local"), (req, res) => {
   });
 });
 
-userRouter.get("/logout", verifyUser, (req, res, next) => {
+userRouter.get("/logout", cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
   if (req.user) {
     req.logout();
     res.redirect("/");
