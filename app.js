@@ -10,6 +10,8 @@ const mongoose = require("mongoose");
 //const url = "mongodb+srv://jgutier1:DX4tkkeH7Kg36iTu@nucampcluster10282023.pdde700.mongodb.net/?retryWrites=true&w=majority"
 const url = config.mongoUrl;
 
+const uploadRouter = require('./routes/uploadRouter');
+
 const connect = mongoose.connect(url, {
   useCreateIndex: true,
   useFindAndModify: false,
@@ -62,6 +64,7 @@ app.use("/partners", partnerRouter);
 app.use("/promotions", promotionRouter);
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
+app.use("/imageUpload", uploadRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
