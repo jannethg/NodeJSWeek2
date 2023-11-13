@@ -7,6 +7,7 @@ const cors = require('./cors');
 
 const userRouter = express.Router();
 
+
 /* GET users listing. */
 userRouter.get("/", cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     User.find()
@@ -80,6 +81,16 @@ userRouter.get("/logout", cors.corsWithOptions, authenticate.verifyUser, (req, r
     const err = new Error("You are not logged in!");
     err.status = 401;
     return next(err);
+  }
+});
+
+//facebook authentication
+userRouter.get('/facebook/token', passport.authenticate('facebook-token'), (req, res) => {
+  if (req.user) {
+      const token = authenticate.getToken({_id: req.user._id});
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.json({success: true, token: token, status: 'You are successfully logged in!'});
   }
 });
 
