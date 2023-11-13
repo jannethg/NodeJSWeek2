@@ -41,10 +41,11 @@ app.all('*', (req, res, next) => {
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "jade");
 
-app.use(logger("dev"));
+if (process.env.NODE_ENV !== "test") {
+  app.use(logger("dev"));
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-//app.use(cookieParser('12345-67890-09876-54321'));
 
 //to check if there's an existing session for that client, then if so the session client is loaded into the request as rec.user
 app.use(passport.initialize());
@@ -66,11 +67,6 @@ app.use("/favorites", favoriteRouter);
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/imageUpload", uploadRouter);
-
-app.get("/corsexample", (req, res) => {
-  res.json("backend server for CORS example!!");
-});
-
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
